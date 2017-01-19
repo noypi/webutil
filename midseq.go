@@ -20,21 +20,21 @@ func MidSeq(handlerToWrap http.HandlerFunc, fs ...*MidInfo) http.HandlerFunc {
 	var currfn http.HandlerFunc = handlerToWrap
 	for i := len(fs) - 1; i >= 0; i-- {
 		var f *MidInfo = fs[i]
-		switch len(fs[i].params) {
-		case 0:
-			currfn = f.fn.(fn0)(currfn)
-		case 1:
-			currfn = f.fn.(fn1)(f.params[0], currfn)
-		case 2:
-			currfn = f.fn.(fn2)(f.params[0], f.params[1], currfn)
-		case 3:
-			currfn = f.fn.(fn3)(f.params[0], f.params[1], f.params[2], currfn)
-		case 4:
-			currfn = f.fn.(fn4)(f.params[0], f.params[1], f.params[2], f.params[3], currfn)
-		case 5:
-			currfn = f.fn.(fn5)(f.params[0], f.params[1], f.params[2], f.params[3], f.params[4], currfn)
-		case 6:
-			currfn = f.fn.(fn6)(f.params[0], f.params[1], f.params[2], f.params[3], f.params[4], f.params[5], currfn)
+		switch fn := f.fn.(type) {
+		case fn0:
+			currfn = fn(currfn)
+		case fn1:
+			currfn = fn(f.params[0], currfn)
+		case fn2:
+			currfn = fn(f.params[0], f.params[1], currfn)
+		case fn3:
+			currfn = fn(f.params[0], f.params[1], f.params[2], currfn)
+		case fn4:
+			currfn = fn(f.params[0], f.params[1], f.params[2], f.params[3], currfn)
+		case fn5:
+			currfn = fn(f.params[0], f.params[1], f.params[2], f.params[3], f.params[4], currfn)
+		case fn6:
+			currfn = fn(f.params[0], f.params[1], f.params[2], f.params[3], f.params[4], f.params[5], currfn)
 		}
 	}
 
