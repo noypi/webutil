@@ -16,8 +16,8 @@ func MidFn(fn interface{}, params ...string) *MidInfo {
 	}
 }
 
-func MidSeq(handlerToWrap http.HandlerFunc, fs ...*MidInfo) http.HandlerFunc {
-	var currfn http.HandlerFunc = handlerToWrap
+func MidSeq(handlerToWrap http.Handler, fs ...*MidInfo) http.Handler {
+	var currfn http.Handler = handlerToWrap
 	for i := len(fs) - 1; i >= 0; i-- {
 		var f *MidInfo = fs[i]
 		switch fn := f.fn.(type) {
@@ -41,10 +41,10 @@ func MidSeq(handlerToWrap http.HandlerFunc, fs ...*MidInfo) http.HandlerFunc {
 	return currfn
 }
 
-type fn0 func(nexth http.HandlerFunc) http.HandlerFunc
-type fn1 func(a string, nexth http.HandlerFunc) http.HandlerFunc
-type fn2 func(a, b string, nexth http.HandlerFunc) http.HandlerFunc
-type fn3 func(a, b, c string, nexth http.HandlerFunc) http.HandlerFunc
-type fn4 func(a, b, c, d string, nexth http.HandlerFunc) http.HandlerFunc
-type fn5 func(a, b, c, d, e string, nexth http.HandlerFunc) http.HandlerFunc
-type fn6 func(a, b, c, d, e, f string, nexth http.HandlerFunc) http.HandlerFunc
+type fn0 func(nexth http.Handler) http.Handler
+type fn1 func(a string, nexth http.Handler) http.Handler
+type fn2 func(a, b string, nexth http.Handler) http.Handler
+type fn3 func(a, b, c string, nexth http.Handler) http.Handler
+type fn4 func(a, b, c, d string, nexth http.Handler) http.Handler
+type fn5 func(a, b, c, d, e string, nexth http.Handler) http.Handler
+type fn6 func(a, b, c, d, e, f string, nexth http.Handler) http.Handler
