@@ -16,6 +16,10 @@ func MidFn(fn interface{}, params ...string) *MidInfo {
 	}
 }
 
+func MidSeqFunc(handlerToWrap http.HandlerFunc, fs ...*MidInfo) http.Handler {
+	return MidSeq(handlerToWrap, fs...)
+}
+
 func MidSeq(handlerToWrap http.Handler, fs ...*MidInfo) http.Handler {
 	var currfn http.Handler = handlerToWrap
 	for i := len(fs) - 1; i >= 0; i-- {
