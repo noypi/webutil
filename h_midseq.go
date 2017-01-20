@@ -35,6 +35,8 @@ func MidSeqFunc(handlerToWrap http.HandlerFunc, fs ...*MidInfo) http.Handler {
 	return MidSeq(handlerToWrap, fs...)
 }
 
+var DefaultMidSeq func(fn interface{}, params []interface{}) http.Handler
+
 func MidSeq(handlerToWrap http.Handler, fs ...*MidInfo) http.Handler {
 	var currfn http.Handler = handlerToWrap
 	for i := len(fs) - 1; i >= 0; i-- {
@@ -68,6 +70,10 @@ func MidSeq(handlerToWrap http.Handler, fs ...*MidInfo) http.Handler {
 		// others
 		case func(LogFunc, http.Handler) http.HandlerFunc:
 			currfn = fn(ps[0].(LogFunc), currfn)
+		default:
+			if nil != DefaultMidSeq {
+				currfn = DefaultMidSeq(fn, ps)
+			}
 		}
 	}
 
