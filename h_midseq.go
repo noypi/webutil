@@ -1,7 +1,10 @@
 package webutil
 
 import (
+	"log"
 	"net/http"
+	"reflect"
+	"runtime"
 )
 
 type MidInfo struct {
@@ -44,33 +47,34 @@ func MidSeq(handlerToWrap http.Handler, fs ...*MidInfo) http.Handler {
 		var ps = fs[i].Params
 		switch fn := f.Fn.(type) {
 		// interface{} params
-		case fn1If:
+		case func(a interface{}, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0], currfn)
-		case fn2If:
+		case func(a, b interface{}, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0], ps[1], currfn)
-		case fn3If:
+		case func(a, b, c interface{}, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0], ps[1], ps[2], currfn)
 
 		// string params
-		case fn0:
+		case func(http.Handler) http.Handler:
 			currfn = fn(currfn)
-		case fn1:
+		case func(a string, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0].(string), currfn)
-		case fn2:
+		case func(a, b string, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0].(string), ps[1].(string), currfn)
-		case fn3:
+		case func(a, b, c string, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0].(string), ps[1].(string), ps[2].(string), currfn)
-		case fn4:
+		case func(a, b, c, d string, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0].(string), ps[1].(string), ps[2].(string), ps[3].(string), currfn)
-		case fn5:
+		case func(a, b, c, d, e string, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0].(string), ps[1].(string), ps[2].(string), ps[3].(string), ps[4].(string), currfn)
-		case fn6:
+		case func(a, b, c, d, e, f string, nexth http.Handler) http.Handler:
 			currfn = fn(ps[0].(string), ps[1].(string), ps[2].(string), ps[3].(string), ps[4].(string), ps[5].(string), currfn)
 
 		// others
 		case func(LogFunc, http.Handler) http.HandlerFunc:
 			currfn = fn(ps[0].(LogFunc), currfn)
 		default:
+			log.Println("default: ", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), ", params len=", len(ps))
 			if nil != DefaultMidSeq {
 				currfn = DefaultMidSeq(fn, ps)
 			}
@@ -79,15 +83,3 @@ func MidSeq(handlerToWrap http.Handler, fs ...*MidInfo) http.Handler {
 
 	return currfn
 }
-
-type fn0 func(nexth http.Handler) http.Handler
-type fn1 func(a string, nexth http.Handler) http.Handler
-type fn2 func(a, b string, nexth http.Handler) http.Handler
-type fn3 func(a, b, c string, nexth http.Handler) http.Handler
-type fn4 func(a, b, c, d string, nexth http.Handler) http.Handler
-type fn5 func(a, b, c, d, e string, nexth http.Handler) http.Handler
-type fn6 func(a, b, c, d, e, f string, nexth http.Handler) http.Handler
-
-type fn1If func(a interface{}, nexth http.Handler) http.Handler
-type fn2If func(a, b interface{}, nexth http.Handler) http.Handler
-type fn3If func(a, b, c interface{}, nexth http.Handler) http.Handler
