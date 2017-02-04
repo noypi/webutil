@@ -7,32 +7,53 @@ import (
 	"context"
 
 	"github.com/gorilla/sessions"
+	"github.com/noypi/util"
 )
 
-var g_sessionsCookieStore *sessions.CookieStore
-var g_sessionsFilesystemStore *sessions.FilesystemStore
-var g_sessionsSecrets [][]byte
+type SessionStore struct {
+	sstore sessions.Store
+}
 
 const (
 	SessionName = "$session"
 )
 
-func SetSessionsSecret(keys ...[]byte) {
-	for _, bb := range keys {
-		g_sessionsSecrets = append(g_sessionsSecrets, bb)
+func NewCookieSession(keys ...[]byte) *SessionStore {
+	if 0 == len(keys) {
+		keys = genRandSecrets()
 	}
+	o := new(SessionStore)
+	o.sstore = sessions.NewCookieStore(keys...)
+
+	return o
 }
 
-func genRandSecrets() {
+func NewFilesystemSession(path string, keys ...[]byte) *SessionStore {
+	if 0 == len(keys) {
+		keys = genRandSecrets()
+	}
+	o := new(SessionStore)
+	o.sstore = sessions.NewFilesystemStore(path, keys...)
+
+	return o
+}
+
+func CurrentSession(ctx context.Context) *sessions.Session {
+	return ctx.Value(SessionName).(*sessions.Session)
+}
+
+func genRandSecrets() [][]byte {
+	var keys [][]byte
 	for i := 0; i < 3; i++ {
 		bb := make([]byte, 10)
 		rand.Read(bb)
-		g_sessionsSecrets = append(g_sessionsSecrets, bb)
+		keys = append(keys, bb)
 	}
+	return keys
 }
 
-func addsesion(sstore sessions.Store, name string, r *http.Request) (ctx context.Context, err error) {
-	session, err := sstore.Get(r, name)
+func (this *SessionStore) addsesion(name string, r *http.Request) (ctx context.Context, err error) {
+	session, err := this.sstore.Get(r, name)
 	if nil != err {
 		return
 	}
@@ -40,39 +61,15 @@ func addsesion(sstore sessions.Store, name string, r *http.Request) (ctx context
 	return context.WithValue(ctx, SessionName, session), nil
 }
 
-func AddCookieSession(name string, nexth http.Handler) http.Handler {
-	if 0 == len(g_sessionsSecrets) {
-		genRandSecrets()
-	}
-	if nil == g_sessionsCookieStore {
-		g_sessionsCookieStore = sessions.NewCookieStore(g_sessionsSecrets...)
-	}
+func (this *SessionStore) AddSessionHandler(name string, nexth http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, err := addsesion(g_sessionsCookieStore, name, r)
+		ctx, err := this.addsesion(name, r)
 		if nil != err {
 			w.WriteHeader(http.StatusInternalServerError)
-			LogErr(ctx, "AddCookieSession() err=", err)
+			util.LogErr(ctx, "AddSessionHandler() err=", err)
 		} else {
 			nexth.ServeHTTP(w, r.WithContext(ctx))
 		}
 
-	})
-}
-
-func AddFilesystemSession(path, name string, nexth http.Handler) http.Handler {
-	if 0 == len(g_sessionsSecrets) {
-		genRandSecrets()
-	}
-	if nil == g_sessionsFilesystemStore {
-		g_sessionsFilesystemStore = sessions.NewFilesystemStore(path, g_sessionsSecrets...)
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, err := addsesion(g_sessionsFilesystemStore, name, r)
-		if nil != err {
-			w.WriteHeader(http.StatusInternalServerError)
-			LogErr(ctx, "AddFilesystemSession() err=", err)
-		} else {
-			nexth.ServeHTTP(w, r.WithContext(ctx))
-		}
 	})
 }
