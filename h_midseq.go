@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/noypi/util"
+	"github.com/noypi/logfn"
 )
 
 type MidInfo struct {
@@ -32,7 +32,7 @@ func MidFnIf(fn interface{}, params ...interface{}) *MidInfo {
 	}
 }
 
-func MidLogFn(fn interface{}, a util.LogFunc) *MidInfo {
+func MidLogFn(fn interface{}, a logfn.LogFunc) *MidInfo {
 	return MidFnIf(fn, a)
 }
 
@@ -73,8 +73,8 @@ func MidSeq(handlerToWrap http.Handler, fs ...*MidInfo) http.Handler {
 			currfn = fn(ps[0].(string), ps[1].(string), ps[2].(string), ps[3].(string), ps[4].(string), ps[5].(string), currfn)
 
 		// others
-		case func(util.LogFunc, http.Handler) http.HandlerFunc:
-			currfn = fn(ps[0].(util.LogFunc), currfn)
+		case func(logfn.LogFunc, http.Handler) http.HandlerFunc:
+			currfn = fn(ps[0].(logfn.LogFunc), currfn)
 		default:
 			log.Println("default: ", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), ", params len=", len(ps))
 			if nil != DefaultMidSeq {

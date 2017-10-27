@@ -4,19 +4,17 @@ import (
 	"crypto/rand"
 	"net/http"
 
-	"context"
-
 	"github.com/gorilla/sessions"
-	"github.com/noypi/util"
+	"github.com/noypi/router"
 )
 
 type SessionStore struct {
 	sstore sessions.Store
 }
 
-const (
-	SessionName = "$session"
-)
+type _sessionName int
+
+const SessionName _sessionName = 0
 
 func NewCookieSession(keys ...[]byte) *SessionStore {
 	if 0 == len(keys) {
@@ -38,8 +36,9 @@ func NewFilesystemSession(path string, keys ...[]byte) *SessionStore {
 	return o
 }
 
-func CurrentSession(ctx context.Context) *sessions.Session {
-	return ctx.Value(SessionName).(*sessions.Session)
+func CurrentSession(ctx *router.Context) (o *sessions.Session, exists bool) {
+	o1, exists := ctx.Get(SessionName)
+	return o1.(*sessions.Session), exists
 }
 
 func genRandSecrets() [][]byte {
@@ -52,24 +51,31 @@ func genRandSecrets() [][]byte {
 	return keys
 }
 
-func (this *SessionStore) addsesion(name string, r *http.Request) (ctx context.Context, err error) {
+func GetSession(ctx *router.Context) *sessions.Session {
+	if o, exists := ctx.Get(SessionName); exists {
+		return o.(*sessions.Session)
+	}
+
+	return nil
+}
+
+func (this *SessionStore) addsesion(name string, r *http.Request) (err error) {
 	session, err := this.sstore.Get(r, name)
 	if nil != err {
 		return
 	}
-	ctx = r.Context()
-	return context.WithValue(ctx, SessionName, session), nil
+	ctx := router.ContextR(r)
+	ctx.Set(SessionName, session)
+	return
 }
 
-func (this *SessionStore) AddSessionHandler(name string, nexth http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, err := this.addsesion(name, r)
+func (this *SessionStore) AddSessionHandler(name string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := this.addsesion(name, r)
+		ctx := router.ContextR(r)
 		if nil != err {
 			w.WriteHeader(http.StatusInternalServerError)
-			util.LogErr(ctx, "AddSessionHandler() err=", err)
-		} else {
-			nexth.ServeHTTP(w, r.WithContext(ctx))
+			LogErr(ctx, "AddSessionHandler() err=", err)
 		}
-
-	})
+	}
 }
