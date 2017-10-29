@@ -16,47 +16,38 @@ type _sessionName int
 
 const SessionName _sessionName = 0
 
-func NewCookieSession(domain string, keys ...[]byte) *SessionStore {
+func validateOptions(opts *sessions.Options, keys [][]byte) (*sessions.Options, [][]byte) {
 	if 0 == len(keys) || 1 == (len(keys)&0x01) {
+		// when keys is odd in length, should be in pairs
 		keys = genRandSecrets()
 	}
+	if nil == opts {
+		opts = &sessions.Options{
+			HttpOnly: true,
+			MaxAge:   3600 * 24 * 365 * 100, // (1*365 a year) * 100
+		}
+	}
 
+	return opts, keys
+}
+
+func NewCookieSession(opts *sessions.Options, keys ...[]byte) *SessionStore {
 	o := new(SessionStore)
+	opts, keys = validateOptions(opts, keys)
 	cs := sessions.NewCookieStore(keys...)
-	cs.Options = &sessions.Options{
-		//Path:     "/",
-		MaxAge: 3600 * 24 * 365 * 100, // (1*365 a year) * 100
-		//Secure:   true,
-		HttpOnly: true,
-	}
-	if 0 < len(domain) {
-		cs.Options.Domain = domain
-	}
+	cs.Options = opts
 	cs.MaxAge(cs.Options.MaxAge)
 	o.sstore = cs
-
 	return o
 }
 
-func NewFilesystemSession(domain string, path string, keys ...[]byte) *SessionStore {
-	if 0 == len(keys) || 1 == (len(keys)&0x01) {
-		keys = genRandSecrets()
-	}
-
+func NewFilesystemSession(fpath string, opts *sessions.Options, keys ...[]byte) *SessionStore {
 	o := new(SessionStore)
-	cs := sessions.NewFilesystemStore(path, keys...)
-	cs.Options = &sessions.Options{
-		//Path:     "/",
-		MaxAge: 3600 * 24 * 365 * 100, // (1*365 a year) * 100
-		//Secure:   true,
-		HttpOnly: true,
-	}
-	if 0 < len(domain) {
-		cs.Options.Domain = domain
-	}
+	opts, keys = validateOptions(opts, keys)
+	cs := sessions.NewFilesystemStore(fpath, keys...)
+	cs.Options = opts
 	cs.MaxAge(cs.Options.MaxAge)
-	o.sstore = sessions.NewFilesystemStore(path, keys...)
-
+	o.sstore = cs
 	return o
 }
 
