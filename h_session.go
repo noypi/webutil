@@ -16,21 +16,45 @@ type _sessionName int
 
 const SessionName _sessionName = 0
 
-func NewCookieSession(keys ...[]byte) *SessionStore {
-	if 0 == len(keys) {
+func NewCookieSession(domain string, keys ...[]byte) *SessionStore {
+	if 0 == len(keys) || 1 == (len(keys)&0x01) {
 		keys = genRandSecrets()
 	}
+
 	o := new(SessionStore)
-	o.sstore = sessions.NewCookieStore(keys...)
+	cs := sessions.NewCookieStore(keys...)
+	cs.Options = &sessions.Options{
+		//Path:     "/",
+		MaxAge: 3600 * 24 * 365 * 100, // (1*365 a year) * 100
+		//Secure:   true,
+		HttpOnly: true,
+	}
+	if 0 < len(domain) {
+		cs.Options.Domain = domain
+	}
+	cs.MaxAge(cs.Options.MaxAge)
+	o.sstore = cs
 
 	return o
 }
 
-func NewFilesystemSession(path string, keys ...[]byte) *SessionStore {
-	if 0 == len(keys) {
+func NewFilesystemSession(domain string, path string, keys ...[]byte) *SessionStore {
+	if 0 == len(keys) || 1 == (len(keys)&0x01) {
 		keys = genRandSecrets()
 	}
+
 	o := new(SessionStore)
+	cs := sessions.NewFilesystemStore(path, keys...)
+	cs.Options = &sessions.Options{
+		//Path:     "/",
+		MaxAge: 3600 * 24 * 365 * 100, // (1*365 a year) * 100
+		//Secure:   true,
+		HttpOnly: true,
+	}
+	if 0 < len(domain) {
+		cs.Options.Domain = domain
+	}
+	cs.MaxAge(cs.Options.MaxAge)
 	o.sstore = sessions.NewFilesystemStore(path, keys...)
 
 	return o
@@ -43,10 +67,14 @@ func CurrentSession(ctx *router.Context) (o *sessions.Session, exists bool) {
 
 func genRandSecrets() [][]byte {
 	var keys [][]byte
-	for i := 0; i < 3; i++ {
-		bb := make([]byte, 10)
-		rand.Read(bb)
-		keys = append(keys, bb)
+	for i := 0; i < 1; i++ {
+		bbHashKey := make([]byte, 32)
+		rand.Read(bbHashKey)
+		keys = append(keys, bbHashKey)
+
+		bbBlockKey := make([]byte, 32)
+		rand.Read(bbBlockKey)
+		keys = append(keys, bbBlockKey)
 	}
 	return keys
 }
@@ -71,11 +99,12 @@ func (this *SessionStore) addsesion(name string, r *http.Request) (err error) {
 
 func (this *SessionStore) AddSessionHandler(name string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := this.addsesion(name, r)
 		ctx := router.ContextR(r)
+		err := this.addsesion(name, r)
 		if nil != err {
-			w.WriteHeader(http.StatusInternalServerError)
-			LogErr(ctx, "AddSessionHandler() err=", err)
+			LogErr(ctx, "AddSessionHandler() err=%v, name=%s", err, name)
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
 	}
 }
