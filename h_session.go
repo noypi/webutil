@@ -67,7 +67,7 @@ func CurrentSession(ctx *router.Context) (o *sessions.Session, exists bool) {
 
 func genRandSecrets() [][]byte {
 	var keys [][]byte
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 3; i++ {
 		bbHashKey := make([]byte, 32)
 		rand.Read(bbHashKey)
 		keys = append(keys, bbHashKey)
