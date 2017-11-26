@@ -1,8 +1,11 @@
 package webutil
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/gob"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/sessions"
 	"github.com/noypi/router"
@@ -19,7 +22,7 @@ const SessionName _sessionName = 0
 func validateOptions(opts *sessions.Options, keys [][]byte) (*sessions.Options, [][]byte) {
 	if 0 == len(keys) || 1 == (len(keys)&0x01) {
 		// when keys is odd in length, should be in pairs
-		keys = genRandSecrets()
+		keys = GenRandSecrets(3)
 	}
 	if nil == opts {
 		opts = &sessions.Options{
@@ -29,6 +32,18 @@ func validateOptions(opts *sessions.Options, keys [][]byte) (*sessions.Options, 
 	}
 
 	return opts, keys
+}
+
+func MarshalKeys(keys [][]byte) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := gob.NewEncoder(buf).Encode(keys)
+	return buf.Bytes(), err
+}
+
+func UnmarshalKeys(bb []byte) (keys [][]byte, err error) {
+	buf := bytes.NewBuffer(bb)
+	err = gob.NewEncoder(buf).Encode(&keys)
+	return
 }
 
 func NewCookieSession(opts *sessions.Options, keys ...[]byte) *SessionStore {
@@ -56,9 +71,9 @@ func CurrentSession(ctx *router.Context) (o *sessions.Session, exists bool) {
 	return o1.(*sessions.Session), exists
 }
 
-func genRandSecrets() [][]byte {
+func GenRandSecrets(count int) [][]byte {
 	var keys [][]byte
-	for i := 0; i < 3; i++ {
+	for i := 0; i < count; i++ {
 		bbHashKey := make([]byte, 32)
 		rand.Read(bbHashKey)
 		keys = append(keys, bbHashKey)
@@ -81,7 +96,12 @@ func GetSession(ctx *router.Context) *sessions.Session {
 func (this *SessionStore) addsesion(name string, r *http.Request) (err error) {
 	session, err := this.sstore.Get(r, name)
 	if nil != err {
-		return
+		if nil != session && strings.Contains(err.Error(), "securecookie: the value is not valid") {
+			err = nil
+		} else {
+			// other errors, do abort
+			return
+		}
 	}
 	ctx := router.ContextR(r)
 	ctx.Set(SessionName, session)
@@ -93,9 +113,57 @@ func (this *SessionStore) AddSessionHandler(name string) http.HandlerFunc {
 		ctx := router.ContextR(r)
 		err := this.addsesion(name, r)
 		if nil != err {
-			LogErr(ctx, "AddSessionHandler() err=%v, name=%s", err, name)
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ERR := GetErrLog(ctx)
+			ERR("AddSessionHandler: name=%s, err=%v", name, err)
+			AddError(ctx, err)
 			return
 		}
+	}
+}
+
+func (this *SessionStore) MaxAge(n int) {
+	switch o := this.sstore.(type) {
+	case *sessions.CookieStore:
+		o.Options.MaxAge = n
+		o.MaxAge(n)
+	case *sessions.FilesystemStore:
+		o.Options.MaxAge = n
+		o.MaxAge(n)
+	}
+}
+
+func (this *SessionStore) Domain(s string) {
+	switch o := this.sstore.(type) {
+	case *sessions.CookieStore:
+		o.Options.Domain = s
+	case *sessions.FilesystemStore:
+		o.Options.Domain = s
+	}
+}
+
+func (this *SessionStore) HttpOnly(b bool) {
+	switch o := this.sstore.(type) {
+	case *sessions.CookieStore:
+		o.Options.HttpOnly = b
+	case *sessions.FilesystemStore:
+		o.Options.HttpOnly = b
+	}
+}
+
+func (this *SessionStore) Path(s string) {
+	switch o := this.sstore.(type) {
+	case *sessions.CookieStore:
+		o.Options.Path = s
+	case *sessions.FilesystemStore:
+		o.Options.Path = s
+	}
+}
+
+func (this *SessionStore) Secure(b bool) {
+	switch o := this.sstore.(type) {
+	case *sessions.CookieStore:
+		o.Options.Secure = b
+	case *sessions.FilesystemStore:
+		o.Options.Secure = b
 	}
 }

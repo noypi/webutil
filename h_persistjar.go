@@ -30,7 +30,7 @@ func CreatePersistentCookie(fnGetCookie func(c *router.Context) (*cookiejar.Jar,
 			ERR := GetErrLog(c)
 			ERR.PrintStackTrace(5)
 			ERR.Ln("CreatePersistentCookie: failed to get cookie, err=%s", err.Error())
-			c.AbortWithStatus(http.StatusInternalServerError)
+			AddError(c, err)
 			return
 		}
 		if nil == jar {
