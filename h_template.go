@@ -1,6 +1,7 @@
 package webutil
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -14,15 +15,17 @@ const TPLRootKey _templateType = 0
 
 var ErrNoRootTPL = fmt.Errorf("no root template found.")
 
-func GetRootTPL(c *router.Context) *template.Template {
+func GetRootTPL(ctx context.Context) *template.Template {
+	c := ctx.(*router.Context)
 	if t, b := c.Get(TPLRootKey); b {
 		return t.(*template.Template)
 	}
 	return nil
 }
 
-func SetRootTemplate(c *router.Context, tpl *template.Template) http.HandlerFunc {
+func SetRootTemplate(ctx context.Context, tpl *template.Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		c := ctx.(*router.Context)
 		c.Set(TPLRootKey, tpl)
 	}
 }

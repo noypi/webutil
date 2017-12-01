@@ -73,7 +73,9 @@ func (this *DbiCache) GetObject(k string, o interface{}) (err error) {
 		v1 := reflect.Indirect(reflect.ValueOf(o))
 		v2 := reflect.Indirect(reflect.ValueOf(tmp))
 		for i := 0; i < v1.NumField(); i++ {
-			v1.Field(i).Set(v2.Field(i))
+			if v1.Field(i).CanSet() {
+				v1.Field(i).Set(v2.Field(i))
+			}
 		}
 	}
 	return

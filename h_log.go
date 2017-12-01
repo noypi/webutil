@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"context"
+
 	"github.com/noypi/logfn"
 	"github.com/noypi/router"
 )
@@ -16,39 +18,44 @@ const (
 	LogWarnName
 )
 
-func WithErrLogger(ctx *router.Context, fn logfn.LogFunc) *router.Context {
-	ctx.Set(LogErrName, fn)
-	return ctx
+func WithErrLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
+	c := ctx.(*router.Context)
+	c.Set(LogErrName, fn)
+	return c
 }
 
-func WithWarnLogger(ctx *router.Context, fn logfn.LogFunc) *router.Context {
-	ctx.Set(LogWarnName, fn)
-	return ctx
+func WithWarnLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
+	c := ctx.(*router.Context)
+	c.Set(LogWarnName, fn)
+	return c
 }
 
-func WithInfoLogger(ctx *router.Context, fn logfn.LogFunc) *router.Context {
-	ctx.Set(LogInfoName, fn)
-	return ctx
+func WithInfoLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
+	c := ctx.(*router.Context)
+	c.Set(LogInfoName, fn)
+	return c
 }
 
-func GetErrLog(ctx *router.Context) logfn.LogFunc {
+func GetErrLog(ctx context.Context) logfn.LogFunc {
 	return getLogFunc(ctx, LogErrName)
 }
 
-func GetInfoLog(ctx *router.Context) logfn.LogFunc {
+func GetInfoLog(ctx context.Context) logfn.LogFunc {
 	return getLogFunc(ctx, LogInfoName)
 }
 
-func GetWarnLog(ctx *router.Context) logfn.LogFunc {
+func GetWarnLog(ctx context.Context) logfn.LogFunc {
 	return getLogFunc(ctx, LogWarnName)
 }
 
-func getLogFunc(ctx *router.Context, name _logFuncType) (fn logfn.LogFunc) {
+func getLogFunc(ctx context.Context, name _logFuncType) (fn logfn.LogFunc) {
 	if nil == ctx {
 		return log.Printf
 	}
 
-	if o, exists := ctx.Get(name); exists {
+	c := ctx.(*router.Context)
+
+	if o, exists := c.Get(name); exists {
 		fn = (o).(logfn.LogFunc)
 	} else {
 		fn = log.Printf
@@ -56,15 +63,15 @@ func getLogFunc(ctx *router.Context, name _logFuncType) (fn logfn.LogFunc) {
 	return
 }
 
-func LogErr(ctx *router.Context, fmt string, params ...interface{}) {
+func LogErr(ctx context.Context, fmt string, params ...interface{}) {
 	GetErrLog(ctx)(fmt, params...)
 }
 
-func LogInfo(ctx *router.Context, fmt string, params ...interface{}) {
+func LogInfo(ctx context.Context, fmt string, params ...interface{}) {
 	GetInfoLog(ctx)(fmt, params...)
 }
 
-func LogWarn(ctx *router.Context, fmt string, params ...interface{}) {
+func LogWarn(ctx context.Context, fmt string, params ...interface{}) {
 	GetWarnLog(ctx)(fmt, params...)
 }
 

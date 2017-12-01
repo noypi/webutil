@@ -1,6 +1,7 @@
 package webutil
 
 import (
+	"context"
 	"net/http"
 
 	cookiejar "github.com/noypi/persistent-cookiejar"
@@ -13,15 +14,15 @@ const (
 	PersistentCookieKey _persistentCookieKey = iota
 )
 
-func GetCookie(ctx *router.Context) *cookiejar.Jar {
-	if o, exists := ctx.Get(PersistentCookieKey); exists {
+func GetCookie(ctx context.Context) *cookiejar.Jar {
+	if o := ctx.Value(PersistentCookieKey); nil != o {
 		return o.(*cookiejar.Jar)
 	}
 
 	return nil
 }
 
-func CreatePersistentCookie(fnGetCookie func(c *router.Context) (*cookiejar.Jar, error)) http.HandlerFunc {
+func CreatePersistentCookie(fnGetCookie func(context.Context) (*cookiejar.Jar, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := router.ContextR(r)
 
@@ -42,7 +43,7 @@ func CreatePersistentCookie(fnGetCookie func(c *router.Context) (*cookiejar.Jar,
 
 }
 
-func SavePersistentCookie(fnSaveCookie func(c *router.Context, jar http.CookieJar) error) http.HandlerFunc {
+func SavePersistentCookie(fnSaveCookie func(c context.Context, jar http.CookieJar) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := router.ContextR(r)
 		jar := GetCookie(c)

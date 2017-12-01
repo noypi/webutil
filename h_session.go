@@ -2,6 +2,7 @@ package webutil
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/gob"
 	"net/http"
@@ -66,8 +67,9 @@ func NewFilesystemSession(fpath string, opts *sessions.Options, keys ...[]byte) 
 	return o
 }
 
-func CurrentSession(ctx *router.Context) (o *sessions.Session, exists bool) {
-	o1, exists := ctx.Get(SessionName)
+func CurrentSession(ctx context.Context) (o *sessions.Session, exists bool) {
+	c := ctx.(*router.Context)
+	o1, exists := c.Get(SessionName)
 	return o1.(*sessions.Session), exists
 }
 
@@ -85,8 +87,9 @@ func GenRandSecrets(count int) [][]byte {
 	return keys
 }
 
-func GetSession(ctx *router.Context) *sessions.Session {
-	if o, exists := ctx.Get(SessionName); exists {
+func GetSession(ctx context.Context) *sessions.Session {
+	c := ctx.(*router.Context)
+	if o, exists := c.Get(SessionName); exists {
 		return o.(*sessions.Session)
 	}
 

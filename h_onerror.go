@@ -1,6 +1,7 @@
 package webutil
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/noypi/router"
@@ -13,8 +14,15 @@ const (
 	ErrorInfo
 )
 
-func AddError(c *router.Context, err error) {
+func AddError(ctx context.Context, err error) {
+	c := ctx.(*router.Context)
 	c.Set(ErrorKey, err)
+}
+
+func GetErrorInfo(ctx context.Context) interface{} {
+	c := ctx.(*router.Context)
+	o, _ := c.Get(ErrorInfo)
+	return o
 }
 
 func ifHasErrorRedirect(w http.ResponseWriter, r *http.Request, theURL string, moreinfo interface{}) {
