@@ -16,6 +16,7 @@ const (
 	LogErrName _logFuncType = iota
 	LogInfoName
 	LogWarnName
+	LogDebugName
 )
 
 func WithErrLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
@@ -36,6 +37,12 @@ func WithInfoLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
 	return c
 }
 
+func WithDebugLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
+	c := ctx.(*router.Context)
+	c.Set(LogDebugName, fn)
+	return c
+}
+
 func GetErrLog(ctx context.Context) logfn.LogFunc {
 	return getLogFunc(ctx, LogErrName)
 }
@@ -46,6 +53,10 @@ func GetInfoLog(ctx context.Context) logfn.LogFunc {
 
 func GetWarnLog(ctx context.Context) logfn.LogFunc {
 	return getLogFunc(ctx, LogWarnName)
+}
+
+func GetDebugLog(ctx context.Context) logfn.LogFunc {
+	return getLogFunc(ctx, LogDebugName)
 }
 
 func getLogFunc(ctx context.Context, name _logFuncType) (fn logfn.LogFunc) {
@@ -75,6 +86,10 @@ func LogWarn(ctx context.Context, fmt string, params ...interface{}) {
 	GetWarnLog(ctx)(fmt, params...)
 }
 
+func LogDebug(ctx context.Context, fmt string, params ...interface{}) {
+	GetDebugLog(ctx)(fmt, params...)
+}
+
 func AddLoggerHandler(fnInfo, fnErr, fnWarn logfn.LogFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := router.ContextR(r)
@@ -87,6 +102,14 @@ func AddLoggerHandler(fnInfo, fnErr, fnWarn logfn.LogFunc) http.Handler {
 		}
 	})
 }
+
+func AddDebugLoggerHandler(fnDebug logfn.LogFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := router.ContextR(r)
+		WithWarnLogger(ctx, fnDebug)
+	})
+}
+
 func ErrLoggerHandler(fn logfn.LogFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := router.ContextR(r)
