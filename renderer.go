@@ -11,13 +11,13 @@ import (
 type _Renderer struct {
 	tpl     *template.Template
 	bufpool BufPool
-	c       *router.Context
+	c       context.Context
 }
 
 func NewRenderer(c context.Context, t *template.Template) *_Renderer {
 	o := new(_Renderer)
 	o.tpl = t
-	o.c = c.(*router.Context)
+	o.c = c
 	o.bufpool = GetBufPool(o.c)
 	return o
 }
@@ -31,13 +31,14 @@ func (r *_Renderer) Execute(code int, name string, data interface{}) error {
 	buf := r.bufpool.Get()
 	defer r.bufpool.Put(buf)
 
-	r.c.Writer.WriteHeader(code)
+	writer := router.GetWriter(r.c)
+	writer.WriteHeader(code)
 	err := template.Must(namedtpl.Clone()).ExecuteTemplate(buf, name, data)
 	if nil != err {
 		return err
 	}
 
-	_, err = io.Copy(r.c.Writer, buf)
+	_, err = io.Copy(writer, buf)
 	return err
 }
 
@@ -46,7 +47,7 @@ func (r *_Renderer) Render(code int, pages ...interface{}) error {
 		return ErrNoRootTPL
 	}
 
-	config0 := GetPageDataKVConfig(r.c, pages[0])
+	config0 := GetPageDataKVConfig(ToStore(r.c), pages[0])
 	c := ToStore(r.c)
 
 	datamap := map[string]interface{}{}
@@ -63,21 +64,20 @@ func (r *_Renderer) Render(code int, pages ...interface{}) error {
 	buf := r.bufpool.Get()
 	defer r.bufpool.Put(buf)
 
-	r.c.Writer.WriteHeader(code)
-
 	if err = tpl.ExecuteTemplate(buf, config0["name"], datamap); nil != err {
 		return err
 	}
 
-	r.c.Writer.WriteHeader(code)
-	_, err = io.Copy(r.c.Writer, buf)
+	writer := router.GetWriter(r.c)
+	writer.WriteHeader(code)
+	_, err = io.Copy(writer, buf)
 	return err
 }
 
 func (r *_Renderer) CloneTemplate(pages ...interface{}) (tpl *template.Template, err error) {
 	tpl = template.New("")
 	for _, v := range pages {
-		config := GetPageDataKVConfig(r.c, v)
+		config := GetPageDataKVConfig(ToStore(r.c), v)
 		name, has := config["name"]
 		if !has {
 			continue

@@ -34,7 +34,7 @@ func ifHasErrorRedirect(w http.ResponseWriter, r *http.Request, theURL string, m
 		}
 		c.Redirect(http.StatusTemporaryRedirect, theURL)
 		c.Abort()
-		ERR := GetErrLog(c)
+		ERR := router.GetErrLog(c)
 		ERR.Ln("err=", err)
 		ERR.PrintStackTrace(20)
 		return

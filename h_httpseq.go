@@ -10,10 +10,10 @@ func HttpSequence(finally http.HandlerFunc, h ...http.HandlerFunc) http.HandlerF
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := router.ContextW(w)
 		for i := 0; i < len(h) && !c.IsAborted(); i++ {
-			h[i].ServeHTTP(c.Writer, c.Request)
+			h[i].ServeHTTP(w, r)
 		}
 		if nil != finally {
-			finally.ServeHTTP(c.Writer, c.Request)
+			finally.ServeHTTP(w, r)
 		}
 	}
 }

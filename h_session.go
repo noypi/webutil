@@ -116,7 +116,7 @@ func (this *SessionStore) AddSessionHandler(name string) http.HandlerFunc {
 		ctx := router.ContextW(w)
 		err := this.addsesion(name, w, r)
 		if nil != err {
-			ERR := GetErrLog(ctx)
+			ERR := router.GetErrLog(ctx)
 			ERR("AddSessionHandler: name=%s, err=%v", name, err)
 			AddError(ctx, err)
 			return
