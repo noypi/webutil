@@ -22,6 +22,25 @@ func NewRenderer(c context.Context, t *template.Template) *_Renderer {
 	return o
 }
 
+func (r *_Renderer) Execute(code int, name string, data interface{}) error {
+	namedtpl := r.tpl.Lookup(name)
+	if nil == namedtpl {
+		return ErrNoRootTPL
+	}
+
+	buf := r.bufpool.Get()
+	defer r.bufpool.Put(buf)
+
+	r.c.Writer.WriteHeader(code)
+	err := template.Must(namedtpl.Clone()).ExecuteTemplate(buf, name, data)
+	if nil != err {
+		return err
+	}
+
+	_, err = io.Copy(r.c.Writer, buf)
+	return err
+}
+
 func (r *_Renderer) Render(code int, pages ...interface{}) error {
 	if 0 == len(pages) {
 		return ErrNoRootTPL
@@ -43,6 +62,8 @@ func (r *_Renderer) Render(code int, pages ...interface{}) error {
 	tpl = tpl.Funcs(funcsmap)
 	buf := r.bufpool.Get()
 	defer r.bufpool.Put(buf)
+
+	r.c.Writer.WriteHeader(code)
 
 	if err = tpl.ExecuteTemplate(buf, config0["name"], datamap); nil != err {
 		return err
