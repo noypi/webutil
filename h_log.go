@@ -20,27 +20,27 @@ const (
 )
 
 func WithErrLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	c.Set(LogErrName, fn)
-	return c
+	return ctx
 }
 
 func WithWarnLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	c.Set(LogWarnName, fn)
-	return c
+	return ctx
 }
 
 func WithInfoLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	c.Set(LogInfoName, fn)
-	return c
+	return ctx
 }
 
 func WithDebugLogger(ctx context.Context, fn logfn.LogFunc) context.Context {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	c.Set(LogDebugName, fn)
-	return c
+	return ctx
 }
 
 func GetErrLog(ctx context.Context) logfn.LogFunc {
@@ -64,7 +64,7 @@ func getLogFunc(ctx context.Context, name _logFuncType) (fn logfn.LogFunc) {
 		return log.Printf
 	}
 
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 
 	if o, exists := c.Get(name); exists {
 		fn = (o).(logfn.LogFunc)
@@ -92,7 +92,7 @@ func LogDebug(ctx context.Context, fmt string, params ...interface{}) {
 
 func AddLoggerHandler(fnInfo, fnErr, fnWarn logfn.LogFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := router.ContextR(r)
+		ctx := router.ContextW(w)
 		if nil != fnInfo {
 			WithInfoLogger(ctx, fnInfo)
 		} else if nil != fnErr {
@@ -105,20 +105,20 @@ func AddLoggerHandler(fnInfo, fnErr, fnWarn logfn.LogFunc) http.Handler {
 
 func AddDebugLoggerHandler(fnDebug logfn.LogFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := router.ContextR(r)
+		ctx := router.ContextW(w)
 		WithWarnLogger(ctx, fnDebug)
 	})
 }
 
 func ErrLoggerHandler(fn logfn.LogFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := router.ContextR(r)
+		ctx := router.ContextW(w)
 		WithErrLogger(ctx, fn)
 	})
 }
 
 func InfoLoggerHandler(fn logfn.LogFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		WithInfoLogger(router.ContextR(r), fn)
+		WithInfoLogger(router.ContextW(w), fn)
 	})
 }

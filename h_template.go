@@ -16,7 +16,7 @@ const TPLRootKey _templateType = 0
 var ErrNoRootTPL = fmt.Errorf("no root template found.")
 
 func GetRootTPL(ctx context.Context) *template.Template {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	if t, b := c.Get(TPLRootKey); b {
 		return t.(*template.Template)
 	}
@@ -25,14 +25,14 @@ func GetRootTPL(ctx context.Context) *template.Template {
 
 func SetRootTemplate(ctx context.Context, tpl *template.Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := ctx.(*router.Context)
+		c := ToStore(ctx)
 		c.Set(TPLRootKey, tpl)
 	}
 }
 
 func AddGlobToRootTPL(pattern string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := router.ContextR(r)
+		c := router.ContextW(w)
 		roottpl := GetRootTPL(c)
 		if nil == roottpl {
 			AddError(c, ErrNoRootTPL)
@@ -48,7 +48,7 @@ func AddGlobToRootTPL(pattern string) http.HandlerFunc {
 
 func AddFilesToRootTPL(filenames ...string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := router.ContextR(r)
+		c := router.ContextW(w)
 		roottpl := GetRootTPL(c)
 		if nil == roottpl {
 			AddError(c, ErrNoRootTPL)

@@ -8,7 +8,7 @@ import (
 
 func IfSuccessRedirect(theURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := router.ContextR(r)
+		c := router.ContextW(w)
 		if _, hasError := c.Get(ErrorKey); !hasError {
 			c.Redirect(http.StatusTemporaryRedirect, theURL)
 		}

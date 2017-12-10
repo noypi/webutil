@@ -11,7 +11,7 @@ import (
 
 func UseDbiCache(namespace string, dbiKey interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := router.ContextR(r)
+		c := router.ContextW(w)
 		oDbi, exists := c.Get(dbiKey)
 		if !exists {
 			return

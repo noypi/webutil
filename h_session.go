@@ -68,7 +68,7 @@ func NewFilesystemSession(fpath string, opts *sessions.Options, keys ...[]byte) 
 }
 
 func CurrentSession(ctx context.Context) (o *sessions.Session, exists bool) {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	o1, exists := c.Get(SessionName)
 	return o1.(*sessions.Session), exists
 }
@@ -88,7 +88,7 @@ func GenRandSecrets(count int) [][]byte {
 }
 
 func GetSession(ctx context.Context) *sessions.Session {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	if o, exists := c.Get(SessionName); exists {
 		return o.(*sessions.Session)
 	}
@@ -96,7 +96,7 @@ func GetSession(ctx context.Context) *sessions.Session {
 	return nil
 }
 
-func (this *SessionStore) addsesion(name string, r *http.Request) (err error) {
+func (this *SessionStore) addsesion(name string, w http.ResponseWriter, r *http.Request) (err error) {
 	session, err := this.sstore.Get(r, name)
 	if nil != err {
 		if nil != session && strings.Contains(err.Error(), "securecookie: the value is not valid") {
@@ -106,15 +106,15 @@ func (this *SessionStore) addsesion(name string, r *http.Request) (err error) {
 			return
 		}
 	}
-	ctx := router.ContextR(r)
+	ctx := router.ContextW(w)
 	ctx.Set(SessionName, session)
 	return
 }
 
 func (this *SessionStore) AddSessionHandler(name string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := router.ContextR(r)
-		err := this.addsesion(name, r)
+		ctx := router.ContextW(w)
+		err := this.addsesion(name, w, r)
 		if nil != err {
 			ERR := GetErrLog(ctx)
 			ERR("AddSessionHandler: name=%s, err=%v", name, err)

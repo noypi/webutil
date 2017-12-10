@@ -15,18 +15,18 @@ const (
 )
 
 func AddError(ctx context.Context, err error) {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	c.Set(ErrorKey, err)
 }
 
 func GetErrorInfo(ctx context.Context) interface{} {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	o, _ := c.Get(ErrorInfo)
 	return o
 }
 
 func ifHasErrorRedirect(w http.ResponseWriter, r *http.Request, theURL string, moreinfo interface{}) {
-	c := router.ContextR(r)
+	c := router.ContextW(w)
 	err, hasError := c.Get(ErrorKey)
 	if hasError {
 		if nil != moreinfo {

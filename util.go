@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/noypi/router"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -28,7 +27,7 @@ func MergeMapStrIf(dst, src map[string]interface{}) {
 }
 
 func GetBufPool(ctx context.Context) BufPool {
-	c := ctx.(*router.Context)
+	c := ToStore(ctx)
 	o, exists := c.Get(BufPoolkey)
 	if exists {
 		return o.(*bpool.BufferPool)

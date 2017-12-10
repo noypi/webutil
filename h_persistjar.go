@@ -24,7 +24,7 @@ func GetCookie(ctx context.Context) *cookiejar.Jar {
 
 func CreatePersistentCookie(fnGetCookie func(context.Context) (*cookiejar.Jar, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := router.ContextR(r)
+		c := router.ContextW(w)
 
 		jar, err := fnGetCookie(c)
 		if nil != err {
@@ -45,7 +45,7 @@ func CreatePersistentCookie(fnGetCookie func(context.Context) (*cookiejar.Jar, e
 
 func SavePersistentCookie(fnSaveCookie func(c context.Context, jar http.CookieJar) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := router.ContextR(r)
+		c := router.ContextW(w)
 		jar := GetCookie(c)
 		fnSaveCookie(c, jar)
 	}

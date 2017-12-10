@@ -9,10 +9,9 @@ import (
 )
 
 type _Renderer struct {
-	tpl      *template.Template
-	bufpool  BufPool
-	c        *router.Context
-	tplcache map[string]*template.Template
+	tpl     *template.Template
+	bufpool BufPool
+	c       *router.Context
 }
 
 func NewRenderer(c context.Context, t *template.Template) *_Renderer {
@@ -20,7 +19,6 @@ func NewRenderer(c context.Context, t *template.Template) *_Renderer {
 	o.tpl = t
 	o.c = c.(*router.Context)
 	o.bufpool = GetBufPool(o.c)
-	o.tplcache = map[string]*template.Template{}
 	return o
 }
 
@@ -30,19 +28,23 @@ func (r *_Renderer) Render(code int, pages ...interface{}) error {
 	}
 
 	config0 := GetPageDataKVConfig(r.c, pages[0])
+	c := ToStore(r.c)
 
 	datamap := map[string]interface{}{}
-	MergePagesData(datamap, pages...)
+	MergePagesData(c, datamap, pages...)
 
 	funcsmap := map[string]interface{}{}
-	MergePagesFuncs(funcsmap, pages...)
+	MergePagesFuncs(c, funcsmap, pages...)
 
-	tpl := r.CloneTemplate(pages...).Funcs(funcsmap)
+	tpl, err := r.CloneTemplate(pages...)
+	if nil != err {
+		return err
+	}
+	tpl = tpl.Funcs(funcsmap)
 	buf := r.bufpool.Get()
 	defer r.bufpool.Put(buf)
 
-	err := tpl.ExecuteTemplate(buf, config0["name"], datamap)
-	if nil != err {
+	if err = tpl.ExecuteTemplate(buf, config0["name"], datamap); nil != err {
 		return err
 	}
 
@@ -51,17 +53,40 @@ func (r *_Renderer) Render(code int, pages ...interface{}) error {
 	return err
 }
 
-func (r *_Renderer) CloneTemplate(pages ...interface{}) *template.Template {
-	tpl := template.New("")
+func (r *_Renderer) CloneTemplate(pages ...interface{}) (tpl *template.Template, err error) {
+	tpl = template.New("")
 	for _, v := range pages {
 		config := GetPageDataKVConfig(r.c, v)
-		if name, has := config["name"]; has {
-			namedtpl := r.tpl.Lookup(name)
-			if nil == namedtpl {
+		name, has := config["name"]
+		if !has {
+			continue
+		}
+
+		namedtpl := r.tpl.Lookup(name)
+		if nil == namedtpl {
+			if o, has := v.(HasHTML); has {
+				if err = addHTMLContent(tpl, name, o); nil != err {
+					return
+				}
+			} else {
 				panic("cannot find named template=" + name)
 			}
-			tpl = template.Must(tpl.AddParseTree(name, namedtpl.Tree.Copy()))
+
+		} else {
+			template.Must(tpl.AddParseTree(name, namedtpl.Tree))
+		}
+
+	}
+	return tpl, nil
+}
+
+func addHTMLContent(tpl *template.Template, name string, o HasHTML) error {
+	if content := o.GetHTMLContent(); 0 < len(content) {
+		if temp, err := template.New(name).Parse(content); nil != err {
+			return err
+		} else {
+			tpl.AddParseTree(name, temp.Tree)
 		}
 	}
-	return tpl
+	return nil
 }

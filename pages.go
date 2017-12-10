@@ -1,12 +1,9 @@
 package webutil
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
-
-	"github.com/noypi/router"
 )
 
 const TPLFieldConfig = "TPLConfig"
@@ -22,8 +19,7 @@ type HasHTML interface {
 	GetHTMLContent() string
 }
 
-func GetPageTypeCache(ctx context.Context) (m map[string]map[string]string) {
-	c := ctx.(*router.Context)
+func GetPageTypeCache(c Store) (m map[string]map[string]string) {
 	o, has := c.Get(PageTypeCache)
 	if !has {
 		m = map[string]map[string]string{}
@@ -38,12 +34,7 @@ func GetPageTypeCache(ctx context.Context) (m map[string]map[string]string) {
 // type SomePage struct {
 //		TPLConfig string `webtpl:"name=mytemplate.tpl"`
 //	}
-func GetPageDataKVConfig(ctx context.Context, page interface{}) (m map[string]string) {
-	var c *router.Context
-	if nil != ctx {
-		c = ctx.(*router.Context)
-	}
-
+func GetPageDataKVConfig(c Store, page interface{}) (m map[string]string) {
 	// get tplname
 	t := reflect.TypeOf(page)
 
@@ -84,21 +75,21 @@ func GetPageDataKVConfig(ctx context.Context, page interface{}) (m map[string]st
 
 }
 
-func MergePagesData(datamap map[string]interface{}, pages ...interface{}) {
+func MergePagesData(c Store, datamap map[string]interface{}, pages ...interface{}) {
 	for i := len(pages) - 1; 0 <= i; i-- {
-		MergePageData(datamap, pages[i])
+		MergePageData(c, datamap, pages[i])
 	}
 	return
 }
 
-func MergePagesFuncs(funcmap map[string]interface{}, pages ...interface{}) {
+func MergePagesFuncs(c Store, funcmap map[string]interface{}, pages ...interface{}) {
 	for i := len(pages) - 1; 0 <= i; i-- {
-		MergePageFuncs(funcmap, pages[i])
+		MergePageFuncs(c, funcmap, pages[i])
 	}
 	return
 }
 
-func MergePageData(data map[string]interface{}, page interface{}) {
+func MergePageData(c Store, data map[string]interface{}, page interface{}) {
 	v := reflect.ValueOf(page)
 	for reflect.Ptr == v.Kind() {
 		v = reflect.Indirect(v)
@@ -111,7 +102,7 @@ func MergePageData(data map[string]interface{}, page interface{}) {
 		f := v.Field(i)
 		if f.CanInterface() {
 			if f.Kind() == reflect.Struct {
-				MergePageData(data, f.Interface())
+				MergePageData(c, data, f.Interface())
 			} else {
 				data[t.Field(i).Name] = f.Interface()
 			}
@@ -120,7 +111,7 @@ func MergePageData(data map[string]interface{}, page interface{}) {
 	}
 }
 
-func MergePageFuncs(funcs map[string]interface{}, page interface{}) {
+func MergePageFuncs(c Store, funcs map[string]interface{}, page interface{}) {
 	v := reflect.ValueOf(page)
 	for reflect.Ptr == v.Kind() {
 		v = reflect.Indirect(v)
