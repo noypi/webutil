@@ -40,6 +40,9 @@ func GetPageTypeCache(c Store) (m map[string]map[string]string) {
 func GetPageDataKVConfig(c Store, page interface{}) (m map[string]string) {
 	// get tplname
 	t := reflect.TypeOf(page)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
 
 	// use cache
 	var cachek string
