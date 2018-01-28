@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/noypi/logfn"
+	"github.com/noypi/router"
 )
 
 const TPLFieldConfig = "TPLConfig"
@@ -112,15 +115,23 @@ func MergePageData(c Store, data map[string]interface{}, page interface{}) {
 }
 
 func MergePageFuncs(c Store, funcs map[string]interface{}, page interface{}) {
+	o, _ := c.Get(router.LogDebugName)
+	DBG := o.(logfn.LogFunc)
+	DBG.Ln("+***********************************MergePageFuncs...")
+	defer DBG.Ln("-***********************************MergePageFuncs...")
+
 	v := reflect.ValueOf(page)
 	for reflect.Ptr == v.Kind() {
 		v = reflect.Indirect(v)
 	}
 	t := v.Type()
 	name := t.Name()
+
 	for i := 0; i < v.NumMethod(); i++ {
 		f := v.Method(i)
+
 		if f.CanInterface() {
+			DBG.Ln("MergePageFuncs...k=", name+t.Method(i).Name)
 			funcs[name+t.Method(i).Name] = f.Interface()
 		}
 	}

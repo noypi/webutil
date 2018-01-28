@@ -12,6 +12,7 @@ func HttpSequence(finally http.HandlerFunc, h ...http.HandlerFunc) http.HandlerF
 		for i := 0; i < len(h) && !c.IsAborted(); i++ {
 			h[i].ServeHTTP(w, r)
 		}
+
 		if nil != finally {
 			finally.ServeHTTP(w, r)
 		}

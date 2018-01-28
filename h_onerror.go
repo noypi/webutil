@@ -2,6 +2,7 @@ package webutil
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/noypi/router"
@@ -26,15 +27,16 @@ func GetErrorInfo(ctx context.Context) interface{} {
 }
 
 func ifHasErrorRedirect(w http.ResponseWriter, r *http.Request, theURL string, moreinfo interface{}) {
-	c := router.ContextW(w)
+	ctx := router.ContextW(w)
+	c := ToStore(ctx)
 	err, hasError := c.Get(ErrorKey)
 	if hasError {
 		if nil != moreinfo {
 			c.Set(ErrorInfo, moreinfo)
 		}
-		c.Redirect(http.StatusTemporaryRedirect, theURL)
-		c.Abort()
-		ERR := router.GetErrLog(c)
+		ctx.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s?error=%v", theURL, err))
+		ctx.Abort()
+		ERR := router.GetErrLog(ctx)
 		ERR.Ln("err=", err)
 		ERR.PrintStackTrace(20)
 		return
