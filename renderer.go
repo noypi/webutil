@@ -4,6 +4,7 @@ import (
 	"context"
 	"html/template"
 	"io"
+	"strings"
 
 	"github.com/noypi/router"
 )
@@ -56,6 +57,9 @@ func (r *_Renderer) Render(code int, pages ...interface{}) error {
 	funcsmap := map[string]interface{}{}
 	MergePagesFuncs(c, funcsmap, pages...)
 
+	DBG := router.GetDebugLog(r.c)
+	DBG.Ln("Render datmap=", datamap)
+
 	tpl, err := r.CloneTemplate(pages...)
 	if nil != err {
 		return err
@@ -64,7 +68,9 @@ func (r *_Renderer) Render(code int, pages ...interface{}) error {
 	buf := r.bufpool.Get()
 	defer r.bufpool.Put(buf)
 
-	if err = tpl.ExecuteTemplate(buf, config0["name"], datamap); nil != err {
+	DBG.Ln("Render fields 0=", strings.Fields(config0["name"])[0])
+
+	if err = tpl.ExecuteTemplate(buf, strings.Fields(config0["name"])[0], datamap); nil != err {
 		return err
 	}
 
@@ -78,23 +84,26 @@ func (r *_Renderer) CloneTemplate(pages ...interface{}) (tpl *template.Template,
 	tpl = template.New("")
 	for _, v := range pages {
 		config := GetPageDataKVConfig(ToStore(r.c), v)
-		name, has := config["name"]
+		sname, has := config["name"]
 		if !has {
 			continue
 		}
 
-		namedtpl := r.tpl.Lookup(name)
-		if nil == namedtpl {
-			if o, has := v.(HasHTML); has {
-				if err = addHTMLContent(tpl, name, o); nil != err {
-					return
+		names := strings.Fields(sname)
+		for _, name := range names {
+			namedtpl := r.tpl.Lookup(name)
+			if nil == namedtpl {
+				if o, has := v.(HasHTML); has {
+					if err = addHTMLContent(tpl, name, o); nil != err {
+						return
+					}
+				} else {
+					panic("cannot find named template=" + name)
 				}
-			} else {
-				panic("cannot find named template=" + name)
-			}
 
-		} else {
-			template.Must(tpl.AddParseTree(name, namedtpl.Tree))
+			} else {
+				template.Must(tpl.AddParseTree(name, namedtpl.Tree))
+			}
 		}
 
 	}

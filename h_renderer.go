@@ -33,6 +33,7 @@ func UseRenderer(glob string, filenames ...string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := router.ContextW(w)
 		if nil != err {
+			LogErr(c, "UseRenderer error:%v", err)
 			AddError(c, err)
 			c.Abort()
 			return
