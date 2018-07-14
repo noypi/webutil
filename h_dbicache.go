@@ -5,7 +5,7 @@ import (
 
 	"reflect"
 
-	"bitbucket.org/noypi/gae"
+	"github.com/noypi/gae"
 	"github.com/noypi/router"
 )
 
